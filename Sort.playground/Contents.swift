@@ -6,8 +6,9 @@ import Foundation
 
 enum SortingAlgorithm
 {
-	case merge
-	case insertion
+	case merge // O(n*log(n)) average
+	case insertion // О(n^2) average
+	case selection // О(n^2) average
 }
 
 
@@ -25,6 +26,9 @@ extension Array
 
 		case .insertion:
 			return insertionSortArray(self, shouldPreceede: shouldPreceede)
+
+		case .selection:
+			return selectionSortArray(self, shouldPreceede: shouldPreceede)
 		}
 	}
 
@@ -170,10 +174,58 @@ private func insertionSortArray<Element>(
 
 
 
+// MARK: - Selection Sort
+
+private func selectionSortArray<Element>(
+	_ array: [Element],
+	shouldPreceede: (Element, Element) -> Bool
+) -> [Element]
+{
+	var output = array
+
+	for primaryIndex in 0..<output.count
+	{
+		var minIndex = primaryIndex
+
+		for secondaryIndex in (primaryIndex + 1)..<output.count
+		{
+			if shouldPreceede(output[secondaryIndex], output[minIndex])
+			{
+				minIndex = secondaryIndex
+			}
+		}
+
+		swap(minIndex, primaryIndex, in: &output)
+	}
+
+	return output
+}
+
+
+
+private func swap<Element>(
+	_ firstIndex: Int,
+	_ secondIndex: Int,
+	in array: inout [Element]
+)
+{
+	if firstIndex == secondIndex
+	{
+		return
+	}
+
+	let temp = array[secondIndex]
+	array[secondIndex] = array[firstIndex]
+	array[firstIndex] = temp
+}
+
+
+
 // MARK: - Test
 
 func test(
 	algorithm: SortingAlgorithm,
+	arraySize: Int,
 	numberOfTests: Int
 )
 {
@@ -182,8 +234,7 @@ func test(
 
 	for _ in 0..<numberOfTests
 	{
-		let arrayLength = 100
-		let array = (0..<arrayLength)
+		let array = (0..<arraySize)
 			.map { _ in return Int.random(in: -10_000...10_000) }
 
 		let start = CFAbsoluteTimeGetCurrent()
@@ -211,4 +262,4 @@ func test(
 }
 
 
-test(algorithm: .insertion, numberOfTests: 10)
+test(algorithm: .selection, arraySize: 100, numberOfTests: 30)
