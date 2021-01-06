@@ -6,9 +6,13 @@ import Foundation
 
 enum SortingAlgorithm
 {
-	case merge // O(n*log(n)) average
-	case insertion // О(n^2) average
-	case selection // О(n^2) average
+	// O(n*log(n)) average
+	case merge
+	case quick
+
+	// О(n^2) average
+	case insertion
+	case selection
 }
 
 
@@ -19,10 +23,20 @@ extension Array
 {
 	func sorted(_ algorithm: SortingAlgorithm, shouldPreceede: @escaping (Element, Element) -> Bool) -> Self
 	{
+		// handle trivial cases
+		if count <= 1
+		{
+			return self
+		}
+
+		// sort
 		switch algorithm
 		{
 		case .merge:
 			return mergeSortArray(self, shouldPreceede: shouldPreceede)
+
+		case .quick:
+			return quickSortArray(self, shouldPreceede: shouldPreceede)
 
 		case .insertion:
 			return insertionSortArray(self, shouldPreceede: shouldPreceede)
@@ -64,12 +78,6 @@ private func mergeSortArray<Element>(
 	shouldPreceede: @escaping (Element, Element) -> Bool
 ) -> [Element]
 {
-	// handle trivial cases
-	if array.count <= 1
-	{
-		return array
-	}
-
 	// slit array in one-element subarrays
 	var arr = [[Element]]()
 
@@ -145,6 +153,39 @@ private func merge<Element>(
 
 
 
+// MARK: - Quick Sort Implementation
+
+private func quickSortArray<Element>(
+	_ array: [Element],
+	shouldPreceede: (Element, Element) -> Bool
+) -> [Element]
+{
+	if array.count < 2
+	{
+		return array
+	}
+
+	var preceedingElements = [Element]()
+	var followingElements = [Element]()
+
+	let primaryKey = array.last!
+
+	for i in 0..<(array.count - 1)
+	{
+		let secondaryKey = array[i]
+
+		shouldPreceede(secondaryKey, primaryKey)
+			? preceedingElements.append(secondaryKey)
+			: followingElements.append(secondaryKey)
+	}
+
+	return quickSortArray(preceedingElements, shouldPreceede: shouldPreceede)
+		+ [primaryKey]
+		+ quickSortArray(followingElements, shouldPreceede: shouldPreceede)
+}
+
+
+
 // MARK: - Insertion Sort Implementation
 
 private func insertionSortArray<Element>(
@@ -174,7 +215,7 @@ private func insertionSortArray<Element>(
 
 
 
-// MARK: - Selection Sort
+// MARK: - Selection Sort Implementation
 
 private func selectionSortArray<Element>(
 	_ array: [Element],
@@ -262,4 +303,4 @@ func test(
 }
 
 
-test(algorithm: .selection, arraySize: 100, numberOfTests: 30)
+test(algorithm: .quick, arraySize: 10, numberOfTests: 30)
