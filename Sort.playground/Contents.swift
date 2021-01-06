@@ -1,3 +1,7 @@
+// None of this sorting algorithms is recomended to be used in production code.
+// Default sort implementation is much more effective and well tested.
+// The sole purpose of this code is educational.
+
 import Foundation
 
 
@@ -155,7 +159,41 @@ private func merge<Element>(
 
 // MARK: - Quick Sort Implementation
 
+private let useDefaultQuickSortImplementation = true
+
 private func quickSortArray<Element>(
+	_ array: [Element],
+	shouldPreceede: (Element, Element) -> Bool
+) -> [Element]
+{
+	if useDefaultQuickSortImplementation
+	{
+		var output = array
+
+		quickSortArrayDefault(
+			&output,
+			lowIndex: 0,
+			highIndex: array.count - 1,
+			shouldPreceede: shouldPreceede
+		)
+
+		return output
+	}
+	else
+	{
+		return quickSortArraySimple(
+			array,
+			shouldPreceede: shouldPreceede
+		)
+	}
+}
+
+
+
+// Has extra impact on memory due to intermediate arrays allocations
+// The algorithm seems clearer though
+
+private func quickSortArraySimple<Element>(
 	_ array: [Element],
 	shouldPreceede: (Element, Element) -> Bool
 ) -> [Element]
@@ -182,6 +220,59 @@ private func quickSortArray<Element>(
 	return quickSortArray(preceedingElements, shouldPreceede: shouldPreceede)
 		+ [primaryKey]
 		+ quickSortArray(followingElements, shouldPreceede: shouldPreceede)
+}
+
+
+
+// Memory effective
+
+private func quickSortArrayDefault<Element>(
+	_ array: inout [Element],
+	lowIndex: Int,
+	highIndex: Int,
+	shouldPreceede: (Element, Element) -> Bool
+)
+{
+	if lowIndex > highIndex
+	{
+		return
+	}
+
+	let primaryKey = array[highIndex]
+
+	var partitionIndex = highIndex
+	var i = lowIndex
+
+	while (i != partitionIndex)
+	{
+		let secondaryKey = array[i]
+
+		if shouldPreceede(secondaryKey, primaryKey)
+		{
+			i += 1
+		}
+		else
+		{
+			let secondaryKey = array.remove(at: i)
+			array.insert(secondaryKey, at: partitionIndex)
+
+			partitionIndex -= 1
+		}
+	}
+
+	quickSortArrayDefault(
+		&array,
+		lowIndex: lowIndex,
+		highIndex: partitionIndex - 1,
+		shouldPreceede: shouldPreceede
+	)
+
+	quickSortArrayDefault(
+		&array,
+		lowIndex: partitionIndex + 1,
+		highIndex: highIndex,
+		shouldPreceede: shouldPreceede
+	)
 }
 
 
@@ -303,4 +394,4 @@ func test(
 }
 
 
-test(algorithm: .quick, arraySize: 10, numberOfTests: 30)
+test(algorithm: .quick, arraySize: 10, numberOfTests: 10)
