@@ -6,6 +6,12 @@ import Foundation
 
 
 
+// MARK: - Callback Type
+
+typealias ShouldPrecede<Element> = (Element, Element) -> Bool
+
+
+
 // MARK: - Algorithms
 
 enum SortingAlgorithm
@@ -13,6 +19,7 @@ enum SortingAlgorithm
 	// O(n*log(n)) average
 	case merge
 	case quick
+	case heap
 
 	// О(n^2) average
 	case insertion
@@ -25,7 +32,10 @@ enum SortingAlgorithm
 
 extension Array
 {
-	func sorted(_ algorithm: SortingAlgorithm, shouldPreceede: @escaping (Element, Element) -> Bool) -> Self
+	func sorted(
+		_ algorithm: SortingAlgorithm,
+		shouldPrecede: @escaping ShouldPrecede<Element>
+	) -> Self
 	{
 		// handle trivial cases
 		if count <= 1
@@ -37,22 +47,28 @@ extension Array
 		switch algorithm
 		{
 		case .merge:
-			return mergeSortArray(self, shouldPreceede: shouldPreceede)
+			return mergeSortArray(self, shouldPrecede: shouldPrecede)
 
 		case .quick:
-			return quickSortArray(self, shouldPreceede: shouldPreceede)
+			return quickSortArray(self, shouldPrecede: shouldPrecede)
+
+		case .heap:
+			return heapSortArray(self, shouldPrecede: shouldPrecede)
 
 		case .insertion:
-			return insertionSortArray(self, shouldPreceede: shouldPreceede)
+			return insertionSortArray(self, shouldPrecede: shouldPrecede)
 
 		case .selection:
-			return selectionSortArray(self, shouldPreceede: shouldPreceede)
+			return selectionSortArray(self, shouldPrecede: shouldPrecede)
 		}
 	}
 
-	mutating func sort(_ algorithm: SortingAlgorithm, shouldPreceede: @escaping (Element, Element) -> Bool)
+	mutating func sort(
+		_ algorithm: SortingAlgorithm,
+		shouldPrecede: @escaping ShouldPrecede<Element>
+	)
 	{
-		self = sorted(algorithm, shouldPreceede: shouldPreceede)
+		self = sorted(algorithm, shouldPrecede: shouldPrecede)
 	}
 }
 
@@ -64,12 +80,12 @@ extension Array where Element: Comparable
 {
 	func sorted(_ algorithm: SortingAlgorithm) -> Self
 	{
-		return sorted(algorithm, shouldPreceede: { $0 < $1 })
+		return sorted(algorithm, shouldPrecede: { $0 < $1 })
 	}
 
 	mutating func sort(_ algorithm: SortingAlgorithm)
 	{
-		self = sorted(algorithm, shouldPreceede: { $0 < $1 })
+		self = sorted(algorithm, shouldPrecede: { $0 < $1 })
 	}
 }
 
@@ -79,7 +95,7 @@ extension Array where Element: Comparable
 
 private func mergeSortArray<Element>(
 	_ array: [Element],
-	shouldPreceede: @escaping (Element, Element) -> Bool
+	shouldPrecede: @escaping ShouldPrecede<Element>
 ) -> [Element]
 {
 	// slit array in one-element subarrays
@@ -93,7 +109,7 @@ private func mergeSortArray<Element>(
 	// merge
 	while arr.count > 1
 	{
-		arr = mergePairs(arr, shouldPreceede: shouldPreceede)
+		arr = mergePairs(arr, shouldPrecede: shouldPrecede)
 	}
 
 	return arr[0]
@@ -103,7 +119,7 @@ private func mergeSortArray<Element>(
 
 private func mergePairs<Element>(
 	_ array: [[Element]],
-	shouldPreceede: @escaping (Element, Element) -> Bool
+	shouldPrecede: @escaping ShouldPrecede<Element>
 ) -> [[Element]]
 {
 	var result = [[Element]]()
@@ -118,7 +134,7 @@ private func mergePairs<Element>(
 					merge(
 						array[i],
 						array[i + 1],
-						shouldPreceede: shouldPreceede
+						shouldPrecede: shouldPrecede
 					)
 				)
 			}
@@ -136,7 +152,7 @@ private func mergePairs<Element>(
 private func merge<Element>(
 	_ lhs: [Element],
 	_ rhs: [Element],
-	shouldPreceede: (Element, Element) -> Bool
+	shouldPrecede: ShouldPrecede<Element>
 ) -> [Element]
 {
 	var merged = [Element]()
@@ -146,7 +162,7 @@ private func merge<Element>(
 	while !lhs.isEmpty && !rhs.isEmpty
 	{
 		merged.append(
-			shouldPreceede(lhs[0], rhs[0])
+			shouldPrecede(lhs[0], rhs[0])
 				? lhs.removeFirst()
 				: rhs.removeFirst()
 		)
@@ -163,7 +179,7 @@ private let useDefaultQuickSortImplementation = true
 
 private func quickSortArray<Element>(
 	_ array: [Element],
-	shouldPreceede: (Element, Element) -> Bool
+	shouldPrecede: ShouldPrecede<Element>
 ) -> [Element]
 {
 	if useDefaultQuickSortImplementation
@@ -174,7 +190,7 @@ private func quickSortArray<Element>(
 			&output,
 			lowIndex: 0,
 			highIndex: array.count - 1,
-			shouldPreceede: shouldPreceede
+			shouldPrecede: shouldPrecede
 		)
 
 		return output
@@ -183,7 +199,7 @@ private func quickSortArray<Element>(
 	{
 		return quickSortArraySimple(
 			array,
-			shouldPreceede: shouldPreceede
+			shouldPrecede: shouldPrecede
 		)
 	}
 }
@@ -195,7 +211,7 @@ private func quickSortArray<Element>(
 
 private func quickSortArraySimple<Element>(
 	_ array: [Element],
-	shouldPreceede: (Element, Element) -> Bool
+	shouldPrecede: ShouldPrecede<Element>
 ) -> [Element]
 {
 	if array.count < 2
@@ -203,7 +219,7 @@ private func quickSortArraySimple<Element>(
 		return array
 	}
 
-	var preceedingElements = [Element]()
+	var precedingElements = [Element]()
 	var followingElements = [Element]()
 
 	let primaryKey = array.last!
@@ -212,14 +228,14 @@ private func quickSortArraySimple<Element>(
 	{
 		let secondaryKey = array[i]
 
-		shouldPreceede(secondaryKey, primaryKey)
-			? preceedingElements.append(secondaryKey)
+		shouldPrecede(secondaryKey, primaryKey)
+			? precedingElements.append(secondaryKey)
 			: followingElements.append(secondaryKey)
 	}
 
-	return quickSortArray(preceedingElements, shouldPreceede: shouldPreceede)
+	return quickSortArray(precedingElements, shouldPrecede: shouldPrecede)
 		+ [primaryKey]
-		+ quickSortArray(followingElements, shouldPreceede: shouldPreceede)
+		+ quickSortArray(followingElements, shouldPrecede: shouldPrecede)
 }
 
 
@@ -230,7 +246,7 @@ private func quickSortArrayDefault<Element>(
 	_ array: inout [Element],
 	lowIndex: Int,
 	highIndex: Int,
-	shouldPreceede: (Element, Element) -> Bool
+	shouldPrecede: ShouldPrecede<Element>
 )
 {
 	if lowIndex > highIndex
@@ -247,7 +263,7 @@ private func quickSortArrayDefault<Element>(
 	{
 		let secondaryKey = array[i]
 
-		if shouldPreceede(secondaryKey, primaryKey)
+		if shouldPrecede(secondaryKey, primaryKey)
 		{
 			i += 1
 		}
@@ -264,15 +280,120 @@ private func quickSortArrayDefault<Element>(
 		&array,
 		lowIndex: lowIndex,
 		highIndex: partitionIndex - 1,
-		shouldPreceede: shouldPreceede
+		shouldPrecede: shouldPrecede
 	)
 
 	quickSortArrayDefault(
 		&array,
 		lowIndex: partitionIndex + 1,
 		highIndex: highIndex,
-		shouldPreceede: shouldPreceede
+		shouldPrecede: shouldPrecede
 	)
+}
+
+
+
+// MARK: - Heap Sort Implementations
+
+private func heapSortArray<Element>(
+	_ array: [Element],
+	shouldPrecede: ShouldPrecede<Element>
+) -> [Element]
+{
+	var output = array
+
+	buildMaxHeap(&output, shouldPrecede: shouldPrecede)
+
+	for index in stride(from: array.count - 1, to: -1, by: -1)
+	{
+		swap(0, index, in: &output)
+
+		siftDown(
+			&output,
+			index: 0,
+			heapSize: index,
+			shouldPrecede: shouldPrecede
+		)
+	}
+
+	return output
+}
+
+
+
+// Test Max Heap
+
+private func isMaxHeap<Element>(
+	_ array: [Element],
+	heapSize: Int,
+	shouldPrecede: ShouldPrecede<Element>
+) -> Bool
+{
+	for root in 0..<heapSize
+	{
+		let left = 2 * root + 1
+		let right = 2 * root + 2
+
+		if left < heapSize, shouldPrecede(array[root], array[left])
+		{
+			return false
+		}
+
+		if right < heapSize, shouldPrecede(array[root], array[right])
+		{
+			return false
+		}
+	}
+
+	return true
+}
+
+
+
+private func buildMaxHeap<Element>(
+	_ array: inout [Element],
+	shouldPrecede: ShouldPrecede<Element>
+)
+{
+	for index in stride(from: array.count / 2 - 1, to: -1, by: -1)
+	{
+		siftDown(
+			&array,
+			index: index,
+			heapSize: array.count,
+			shouldPrecede: shouldPrecede
+		)
+	}
+}
+
+
+
+private func siftDown<Element>(
+	_ array: inout [Element],
+	index: Int,
+	heapSize: Int,
+	shouldPrecede: ShouldPrecede<Element>
+)
+{
+	var root = index
+	let left = 2 * root + 1
+	let right = 2 * root + 2
+
+	if left < heapSize, shouldPrecede(array[root], array[left])
+	{
+		root = left
+	}
+
+	if right < heapSize, shouldPrecede(array[root], array[right])
+	{
+		root = right
+	}
+
+	if root != index
+	{
+		swap(index, root, in: &array)
+		siftDown(&array, index: root, heapSize: heapSize, shouldPrecede: shouldPrecede)
+	}
 }
 
 
@@ -281,7 +402,7 @@ private func quickSortArrayDefault<Element>(
 
 private func insertionSortArray<Element>(
 	_ array: [Element],
-	shouldPreceede: (Element, Element) -> Bool
+	shouldPrecede: ShouldPrecede<Element>
 ) -> [Element]
 {
 	var output = array
@@ -292,7 +413,7 @@ private func insertionSortArray<Element>(
 		var secondaryIndex = primaryIndex - 1
 
 		while secondaryIndex >= 0,
-			  shouldPreceede(key, output[secondaryIndex])
+			  shouldPrecede(key, output[secondaryIndex])
 		{
 			output[secondaryIndex + 1] = output[secondaryIndex]
 			secondaryIndex -= 1
@@ -310,7 +431,7 @@ private func insertionSortArray<Element>(
 
 private func selectionSortArray<Element>(
 	_ array: [Element],
-	shouldPreceede: (Element, Element) -> Bool
+	shouldPrecede: ShouldPrecede<Element>
 ) -> [Element]
 {
 	var output = array
@@ -321,7 +442,7 @@ private func selectionSortArray<Element>(
 
 		for secondaryIndex in (primaryIndex + 1)..<output.count
 		{
-			if shouldPreceede(output[secondaryIndex], output[minIndex])
+			if shouldPrecede(output[secondaryIndex], output[minIndex])
 			{
 				minIndex = secondaryIndex
 			}
@@ -394,4 +515,4 @@ func test(
 }
 
 
-test(algorithm: .quick, arraySize: 10, numberOfTests: 10)
+test(algorithm: .heap, arraySize: 100, numberOfTests: 10)
